@@ -34,34 +34,13 @@ class DetectorView extends StatefulWidget {
 }
 
 class _DetectorViewState extends State<DetectorView> {
-  late DetectorViewMode _mode;
-
-  @override
-  void initState() {
-    _mode = widget.initialDetectionMode;
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
     return CameraView(
       onImage: widget.onImage,
       onCameraFeedReady: widget.onCameraFeedReady,
-      onDetectorViewModeChanged: _onDetectorViewModeChanged,
       initialCameraLensDirection: widget.initialCameraLensDirection,
       onCameraLensDirectionChanged: widget.onCameraLensDirectionChanged,
     );
-  }
-
-  void _onDetectorViewModeChanged() {
-    if (_mode == DetectorViewMode.liveFeed) {
-      _mode = DetectorViewMode.gallery;
-    } else {
-      _mode = DetectorViewMode.liveFeed;
-    }
-    if (widget.onDetectorViewModeChanged != null) {
-      widget.onDetectorViewModeChanged!(_mode);
-    }
-    setState(() {});
   }
 }
