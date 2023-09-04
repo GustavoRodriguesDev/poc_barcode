@@ -31,23 +31,33 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final barcodeText = ValueNotifier<String>('');
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [],
+          children: [
+            ValueListenableBuilder(
+              valueListenable: barcodeText,
+              builder: (context, value, child) {
+                return Text(
+                    '$value dasdasf asdasda asdasda asdasd asdasd asdasd asdasd');
+              },
+            )
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => BarcodeScannerView(),
+              builder: (context) =>
+                  BarcodeScannerView(barcodeText: barcodeText),
             ),
           );
         },

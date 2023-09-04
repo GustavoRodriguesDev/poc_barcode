@@ -6,25 +6,28 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 class BarcodeScannerView extends StatefulWidget {
-  const BarcodeScannerView({super.key});
-
+  final ValueNotifier<String> barcodeText;
+  const BarcodeScannerView({required this.barcodeText, super.key});
   @override
   State<BarcodeScannerView> createState() => _BarcodeScannerViewState();
 }
 
 class _BarcodeScannerViewState extends State<BarcodeScannerView> {
-  final BarcodeScanner _barcodeScanner = BarcodeScanner();
+  late BarcodeScanner _barcodeScanner;
   bool _canProcess = true;
   bool _isBusy = false;
 
   static List<CameraDescription> _cameras = [];
-  CameraController? _controller;
+  late CameraController _controller;
   int _cameraIndex = -1;
 
-  var _cameraLensDirection = CameraLensDirection.back;
+  late CameraLensDirection _cameraLensDirection;
   @override
   void initState() {
     super.initState();
+    _barcodeScanner = BarcodeScanner();
+    _cameraLensDirection = CameraLensDirection.back;
+
     _initialize();
   }
 
@@ -53,48 +56,53 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_cameras.isEmpty) return Container();
-    if (_controller == null) return Container();
-    if (_controller?.value.isInitialized == false) return Container();
-    return Container(
-      color: Colors.black,
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          Center(
-            child: CameraPreview(
-              _controller!,
-            ),
-          ),
-          ClipPath(
-            clipper: MyCustonClipper(),
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.3,
-              width: MediaQuery.of(context).size.width * 0.7,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                color: Colors.black54,
+    if (_cameras.isEmpty) {
+      return Container(
+        color: Colors.black,
+        child: const Text('Camera não encontrada'),
+      );
+    }
+
+    return Scaffold(
+      body: Container(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: CameraPreview(
+                _controller,
               ),
             ),
-          ),
-          Positioned(
-            top: 40,
-            left: 8,
-            child: SizedBox(
-              height: 50.0,
-              width: 50.0,
-              child: FloatingActionButton(
-                heroTag: Object(),
-                onPressed: () => Navigator.of(context).pop(),
-                backgroundColor: Colors.black54,
-                child: const Icon(
-                  Icons.arrow_back_ios_outlined,
-                  size: 20,
+            ClipPath(
+              clipper: MyCustonClipper(),
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.3,
+                width: MediaQuery.of(context).size.width * 0.7,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                  color: Colors.black54,
                 ),
               ),
             ),
-          )
-        ],
+            Positioned(
+              top: 40,
+              left: 8,
+              child: SizedBox(
+                height: 50.0,
+                width: 50.0,
+                child: FloatingActionButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  backgroundColor: Colors.black54,
+                  child: const Icon(
+                    Icons.arrow_back_ios_outlined,
+                    size: 20,
+                  ),
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -110,6 +118,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
         inputImage.metadata?.rotation != null) {
       for (final item in barcodes) {
         if (item.displayValue!.length == 44) {
+          widget.barcodeText.value = item.displayValue!;
           Navigator.pop(context);
           return item.displayValue;
         }
@@ -120,7 +129,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
     return null;
   }
 
-  Future _startLiveFeed() async {
+  Future<void> _startLiveFeed() async {
     final camera = _cameras[_cameraIndex];
     _controller = CameraController(
       camera,
@@ -130,22 +139,18 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
           ? ImageFormatGroup.nv21
           : ImageFormatGroup.bgra8888,
     );
-    _controller?.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
 
-      _controller?.startImageStream(_processCameraImage).then((value) {
+    _controller.initialize().then((_) {
+      _controller.startImageStream(_processCameraImage).then((value) {
         _cameraLensDirection = camera.lensDirection;
       });
       setState(() {});
     });
   }
 
-  Future _stopLiveFeed() async {
-    await _controller?.stopImageStream();
-    await _controller?.dispose();
-    _controller = null;
+  Future<void> _stopLiveFeed() async {
+    await _controller.stopImageStream();
+    await _controller.dispose();
   }
 
   void _processCameraImage(CameraImage image) {
@@ -162,8 +167,6 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
   };
 
   InputImage? _inputImageFromCameraImage(CameraImage image) {
-    if (_controller == null) return null;
-
     final camera = _cameras[_cameraIndex];
     final sensorOrientation = camera.sensorOrientation;
     InputImageRotation? rotation;
@@ -171,7 +174,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> {
       rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
     } else if (Platform.isAndroid) {
       var rotationCompensation =
-          _orientations[_controller!.value.deviceOrientation];
+          _orientations[_controller.value.deviceOrientation];
       if (rotationCompensation == null) return null;
       if (camera.lensDirection == CameraLensDirection.front) {
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
